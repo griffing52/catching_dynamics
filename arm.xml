@@ -1,0 +1,117 @@
+<mujoco model="robot_arm_throw_catch">
+
+    <compiler angle="degree" coordinate="local" inertiafromgeom="true" texturedir="textures/"/>
+  
+    <option integrator="RK4" timestep="0.002" gravity="0 0 -9.81">
+      <flag contact="enable" energy="enable" warmstart="enable"/>
+    </option>
+  
+    <visual>
+      <headlight ambient="0.1 0.1 0.1" diffuse="0.6 0.6 0.6" specular="0.3 0.3 0.3"/>
+      <map force="0.1" zfar="30"/>
+      <quality shadowsize="4096"/>
+      <global offwidth="2560" offheight="1440"/>
+    </visual>
+  
+    <asset>
+      <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="512"/>
+      <material name="robot_mat" specular="0.5" shininess="0.5" rgba="0.4 0.6 0.8 1"/>
+      <material name="gripper_mat" specular="0.5" shininess="0.5" rgba="0.2 0.2 0.2 1"/>
+      <material name="ball_mat" specular="0.8" shininess="0.8" rgba="0.9 0.1 0.1 1"/>
+      <material name="floor_mat" specular="0.1" shininess="0.1" rgba="0.2 0.25 0.3 1"/>
+      <material name="table_mat" specular="0.3" shininess="0.2" rgba="0.5 0.4 0.3 1"/>
+    </asset>
+  
+    <default>
+      <joint armature="0.01" damping="0.1" limited="true"/>
+      <geom type="capsule" material="robot_mat" condim="3" friction="0.8 0.1 0.1" solimp="0.99 0.99 0.01" solref="0.01 1"/>
+      <motor ctrllimited="true"/>
+      <position ctrllimited="true" kp="100"/> <default class="arm_link">
+        <geom type="capsule" size="0.04" material="robot_mat"/>
+        <joint type="hinge" damping="2" armature="0.02"/>
+      </default>
+      <default class="gripper_finger">
+        <geom type="box" size="0.02 0.01 0.035" material="gripper_mat" condim="4" friction="1.5 0.2 0.2" solimp="0.99 0.99 0.01" solref="0.01 1"/>
+        <joint type="slide" damping="1" armature="0.002"/>
+      </default>
+    </default>
+  
+    <worldbody>
+      <geom name="floor" type="plane" size="3 3 0.1" material="floor_mat" condim="3"/>
+      <light name="top_light" pos="0 0 3" dir="0 0 -1" diffuse="0.9 0.9 0.9" specular="0.1 0.1 0.1" castshadow="true"/>
+      <light name="front_light" pos="1 1 1.5" dir="-1 -1 -1" diffuse="0.4 0.4 0.4" specular="0.05 0.05 0.05" castshadow="false"/>
+  
+  
+      <body name="table" pos="0.4 0 0"> <geom name="table_top" type="box" size="0.5 0.7 0.025" pos="0 0 0.4" material="table_mat" condim="3"/>
+        <geom name="leg1" type="box" size="0.025 0.025 0.1875" pos="0.45 0.65 -0.2125" material="table_mat"/>
+        <geom name="leg2" type="box" size="0.025 0.025 0.1875" pos="-0.45 0.65 -0.2125" material="table_mat"/>
+        <geom name="leg3" type="box" size="0.025 0.025 0.1875" pos="0.45 -0.65 -0.2125" material="table_mat"/>
+        <geom name="leg4" type="box" size="0.025 0.025 0.1875" pos="-0.45 -0.65 -0.2125" material="table_mat"/>
+      </body>
+  
+      <body name="base_static" pos="0.4 0 0.475"> <geom name="base_geom_static" type="cylinder" size="0.08 0.05" material="robot_mat" mass="2"/> <body name="link1_shoulder_yaw" pos="0 0 0.05"> <joint name="j_shoulder_yaw" type="hinge" axis="0 0 1" range="-180 180" class="arm_link" damping="5"/>
+              <geom name="g_shoulder_yaw" fromto="0 0 0 0 0 0.08" size="0.045" class="arm_link"/>
+  
+              <body name="link2_shoulder_pitch" pos="0 0 0.08"> <joint name="j_shoulder_pitch" type="hinge" axis="0 1 0" range="-90 90" class="arm_link" damping="5"/>
+                  <geom name="g_upper_arm" fromto="0 0 0 0.25 0 0" size="0.04" class="arm_link"/> <body name="link3_elbow_pitch" pos="0.25 0 0"> <joint name="j_elbow_pitch" type="hinge" axis="0 1 0" range="-150 0" class="arm_link" damping="3"/>
+                      <geom name="g_forearm" fromto="0 0 0 0.20 0 0" size="0.035" class="arm_link"/> <body name="link4_wrist_pitch" pos="0.20 0 0"> <joint name="j_wrist_pitch" type="hinge" axis="0 1 0" range="-70 70" class="arm_link" damping="1"/>
+                          <geom name="g_wrist_segment1" fromto="0 0 0 0.05 0 0" size="0.03" class="arm_link"/>
+  
+                          <body name="link5_wrist_roll" pos="0.05 0 0"> <joint name="j_wrist_roll" type="hinge" axis="1 0 0" range="-180 180" class="arm_link" damping="1"/>
+                              <geom name="g_wrist_segment2_connector" type="sphere" size="0.03" material="robot_mat"/> <body name="gripper_base" pos="0.03 0 0"> <geom name="g_gripper_mount" type="box" size="0.015 0.03 0.015" material="gripper_mat" mass="0.05"/>
+  
+                                  <body name="gripper_finger_left" pos="0 0.015 0"> <joint name="j_finger_left" axis="0 1 0" range="0 0.045" class="gripper_finger"/> <geom name="g_finger_left" pos="0 0.005 0" class="gripper_finger"/> <site name="left_contact_site" pos="0 0 0" size="0.01 0.005 0.015" type="box" rgba="1 0 0 0.3"/> </body>
+  
+                                  <body name="gripper_finger_right" pos="0 -0.015 0"> <joint name="j_finger_right" axis="0 -1 0" range="0 0.045" class="gripper_finger"/> <geom name="g_finger_right" pos="0 -0.005 0" class="gripper_finger"/> <site name="right_contact_site" pos="0 0 0" size="0.01 0.005 0.015" type="box" rgba="0 1 0 0.3"/> </body>
+                              </body>
+                          </body>
+                      </body>
+                  </body>
+              </body>
+          </body>
+      </body>
+  
+      <body name="ball" pos="0.4 0.3 0.8"> <joint name="ball_joint" type="free" damping="0.005" armature="0.0001"/>
+          <geom name="g_ball" type="sphere" size="0.03" material="ball_mat" condim="3" friction="0.7 0.1 0.1" mass="0.05" solimp="0.99 0.99 0.01" solref="0.01 1"/>
+          <site name="s_ball_center" type="sphere" size="0.001" rgba="0 0 0 0"/> </body>
+  
+    </worldbody>
+  
+    <equality>
+      <joint joint1="j_finger_left" joint2="j_finger_right" polycoef="0 1 0 0 0"/>
+    </equality>
+  
+    <actuator>
+      <position name="a_shoulder_yaw" joint="j_shoulder_yaw" kp="250" gear="1" ctrlrange="-180 180"/>
+      <position name="a_shoulder_pitch" joint="j_shoulder_pitch" kp="250" gear="1" ctrlrange="-90 90"/>
+      <position name="a_elbow_pitch" joint="j_elbow_pitch" kp="200" gear="1" ctrlrange="-150 0"/>
+      <position name="a_wrist_pitch" joint="j_wrist_pitch" kp="100" gear="1" ctrlrange="-70 70"/>
+      <position name="a_wrist_roll" joint="j_wrist_roll" kp="80" gear="1" ctrlrange="-180 180"/>
+  
+      <position name="a_gripper" joint="j_finger_left" kp="50" gear="1" ctrlrange="0 0.045"/> </actuator>
+  
+    <sensor>
+      <jointpos name="s_j_shoulder_yaw" joint="j_shoulder_yaw"/>
+      <jointpos name="s_j_shoulder_pitch" joint="j_shoulder_pitch"/>
+      <jointpos name="s_j_elbow_pitch" joint="j_elbow_pitch"/>
+      <jointpos name="s_j_wrist_pitch" joint="j_wrist_pitch"/>
+      <jointpos name="s_j_wrist_roll" joint="j_wrist_roll"/>
+      <jointpos name="s_j_gripper" joint="j_finger_left"/> <jointvel name="s_v_shoulder_yaw" joint="j_shoulder_yaw"/>
+      <jointvel name="s_v_shoulder_pitch" joint="j_shoulder_pitch"/>
+      <jointvel name="s_v_elbow_pitch" joint="j_elbow_pitch"/>
+  
+      <touch name="s_touch_left" site="left_contact_site"/>
+      <touch name="s_touch_right" site="right_contact_site"/>
+  
+      <framepos name="s_ball_pos" objtype="body" objname="ball"/>
+      <framelinvel name="s_ball_linvel" objtype="body" objname="ball"/>
+      <frameangvel name="s_ball_angvel" objtype="body" objname="ball"/>
+  
+      <framepos name="s_eef_pos" objtype="body" objname="gripper_base"/>
+      <framequat name="s_eef_quat" objtype="body" objname="gripper_base"/>
+      <framelinvel name="s_eef_linvel" objtype="body" objname="gripper_base"/>
+      <frameangvel name="s_eef_angvel" objtype="body" objname="gripper_base"/>
+    </sensor>
+  
+  </mujoco>
+  
