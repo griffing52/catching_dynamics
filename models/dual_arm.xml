@@ -1,8 +1,8 @@
 <mujoco model="planar manipulator dual arm">
 
-  <include file="./common/visual.xml"/>
-  <include file="./common/skybox.xml"/>
-  <include file="./common/materials.xml"/>
+  <include file="visual.xml"/>
+  <include file="skybox.xml"/>
+  <include file="materials.xml"/>
   <asset>
     <texture name="background" builtin="flat" type="2d" mark="random" markrgb="1 1 1" width="800" height="800" rgb1=".2 .3 .4"/>
     <material name="background" texture="background" texrepeat="1 1" texuniform="true"/>
