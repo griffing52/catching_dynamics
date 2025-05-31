@@ -35,29 +35,21 @@ _P_IN_HAND = .1  # Probabillity of object-in-hand initial state
 _P_IN_TARGET = .1  # Probabillity of object-in-target initial state
 _ARM_JOINTS = ['arm_root', 'arm_shoulder', 'arm_elbow', 'arm_wrist',
                'finger', 'fingertip', 'thumb', 'thumbtip']
-_ALL_PROPS = frozenset(['ball', 'target_ball', 'cup',
-                        'peg', 'target_peg', 'slot'])
+_ALL_PROPS = frozenset(['ball', 'target_ball'])
 _TOUCH_SENSORS = ['palm_touch', 'finger_touch', 'thumb_touch',
                   'fingertip_touch', 'thumbtip_touch']
 
 SUITE = containers.TaggedTasks()
 
 
-def make_model(use_peg, insert):
+def make_model():
   """Returns a tuple containing the model XML string and a dict of assets."""
   xml_string = common.read_model('manipulator.xml')
   parser = etree.XMLParser(remove_blank_text=True)
   mjcf = etree.XML(xml_string, parser)
 
   # Select the desired prop.
-  if use_peg:
-    required_props = ['peg', 'target_peg']
-    if insert:
-      required_props += ['slot']
-  else:
-    required_props = ['ball', 'target_ball']
-    if insert:
-      required_props += ['cup']
+  required_props = ['ball', 'target_ball']
 
   # Remove unused props
   for unused_prop in _ALL_PROPS.difference(required_props):
@@ -71,56 +63,8 @@ def make_model(use_peg, insert):
 def bring_ball(fully_observable=True, time_limit=_TIME_LIMIT, random=None,
                environment_kwargs=None):
   """Returns manipulator bring task with the ball prop."""
-  use_peg = False
-  insert = False
-  physics = Physics.from_xml_string(*make_model(use_peg, insert))
-  task = Bring(use_peg=use_peg, insert=insert,
-               fully_observable=fully_observable, random=random)
-  environment_kwargs = environment_kwargs or {}
-  return control.Environment(
-      physics, task, control_timestep=_CONTROL_TIMESTEP, time_limit=time_limit,
-      **environment_kwargs)
-
-
-@SUITE.add('hard')
-def bring_peg(fully_observable=True, time_limit=_TIME_LIMIT, random=None,
-              environment_kwargs=None):
-  """Returns manipulator bring task with the peg prop."""
-  use_peg = True
-  insert = False
-  physics = Physics.from_xml_string(*make_model(use_peg, insert))
-  task = Bring(use_peg=use_peg, insert=insert,
-               fully_observable=fully_observable, random=random)
-  environment_kwargs = environment_kwargs or {}
-  return control.Environment(
-      physics, task, control_timestep=_CONTROL_TIMESTEP, time_limit=time_limit,
-      **environment_kwargs)
-
-
-@SUITE.add('hard')
-def insert_ball(fully_observable=True, time_limit=_TIME_LIMIT, random=None,
-                environment_kwargs=None):
-  """Returns manipulator insert task with the ball prop."""
-  use_peg = False
-  insert = True
-  physics = Physics.from_xml_string(*make_model(use_peg, insert))
-  task = Bring(use_peg=use_peg, insert=insert,
-               fully_observable=fully_observable, random=random)
-  environment_kwargs = environment_kwargs or {}
-  return control.Environment(
-      physics, task, control_timestep=_CONTROL_TIMESTEP, time_limit=time_limit,
-      **environment_kwargs)
-
-
-@SUITE.add('hard')
-def insert_peg(fully_observable=True, time_limit=_TIME_LIMIT, random=None,
-               environment_kwargs=None):
-  """Returns manipulator insert task with the peg prop."""
-  use_peg = True
-  insert = True
-  physics = Physics.from_xml_string(*make_model(use_peg, insert))
-  task = Bring(use_peg=use_peg, insert=insert,
-               fully_observable=fully_observable, random=random)
+  physics = Physics.from_xml_string(*make_model())
+  task = Bring(fully_observable=fully_observable, random=random)
   environment_kwargs = environment_kwargs or {}
   return control.Environment(
       physics, task, control_timestep=_CONTROL_TIMESTEP, time_limit=time_limit,
@@ -161,7 +105,7 @@ class Physics(mujoco.Physics):
 class Bring(base.Task):
   """A Bring `Task`: bring the prop to the target."""
 
-  def __init__(self, use_peg, insert, fully_observable, random=None):
+  def __init__(self, fully_observable, random=None):
     """Initialize an instance of the `Bring` task.
 
     Args:
@@ -174,12 +118,9 @@ class Bring(base.Task):
         integer seed for creating a new `RandomState`, or None to select a seed
         automatically (default).
     """
-    self._use_peg = use_peg
-    self._target = 'target_peg' if use_peg else 'target_ball'
-    self._object = 'peg' if self._use_peg else 'ball'
+    self._target = 'target_ball'
+    self._object = 'ball'
     self._object_joints = ['_'.join([self._object, dim]) for dim in 'xzy']
-    self._receptacle = 'slot' if self._use_peg else 'cup'
-    self._insert = insert
     self._fully_observable = fully_observable
     super().__init__(random=random)
 
@@ -209,13 +150,7 @@ class Bring(base.Task):
       # Randomise target location.
       target_x = uniform(-.4, .4)
       target_z = uniform(.1, .4)
-      if self._insert:
-        target_angle = uniform(-np.pi/3, np.pi/3)
-        model.body_pos[self._receptacle, ['x', 'z']] = target_x, target_z
-        model.body_quat[self._receptacle, ['qw', 'qy']] = [
-            np.cos(target_angle/2), np.sin(target_angle/2)]
-      else:
-        target_angle = uniform(-np.pi, np.pi)
+      target_angle = uniform(-np.pi, np.pi)
 
       model.body_pos[self._target, ['x', 'z']] = target_x, target_z
       model.body_quat[self._target, ['qw', 'qy']] = [
@@ -265,24 +200,10 @@ class Bring(base.Task):
   def _is_close(self, distance):
     return rewards.tolerance(distance, (0, _CLOSE), _CLOSE*2)
 
-  def _peg_reward(self, physics):
-    """Returns a reward for bringing the peg prop to the target."""
-    grasp = self._is_close(physics.site_distance('peg_grasp', 'grasp'))
-    pinch = self._is_close(physics.site_distance('peg_pinch', 'pinch'))
-    grasping = (grasp + pinch) / 2
-    bring = self._is_close(physics.site_distance('peg', 'target_peg'))
-    bring_tip = self._is_close(physics.site_distance('target_peg_tip',
-                                                     'peg_tip'))
-    bringing = (bring + bring_tip) / 2
-    return max(bringing, grasping/3)
-
   def _ball_reward(self, physics):
     """Returns a reward for bringing the ball prop to the target."""
     return self._is_close(physics.site_distance('ball', 'target_ball'))
 
   def get_reward(self, physics):
     """Returns a reward to the agent."""
-    if self._use_peg:
-      return self._peg_reward(physics)
-    else:
-      return self._ball_reward(physics)
+    return self._ball_reward(physics)
