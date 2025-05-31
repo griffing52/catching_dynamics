@@ -62,8 +62,8 @@
 
     <replicate count="2" offset="3 0 0">
       <geom name="floor" type="plane" pos="0 0 0" size=".4 .2 10" material="grid"/>
-      <geom name="wall1" type="plane" pos="-.682843 0 .282843" size=".4 .2 10" material="grid" zaxis="1 0 1"/>
-      <geom name="wall2" type="plane" pos=".682843 0 .282843" size=".4 .2 10" material="grid" zaxis="-1 0 1"/>
+      <geom name="wall1_finite" type="box" pos="-.682843 0 .282843" size="0.01 .2 .4" material="grid" euler="0 -45 0"/>
+      <geom name="wall2_finite" type="box" pos=".682843 0 .282843" size="0.01 .2 .4" material="grid" euler="0 45 0"/>
       <geom name="background" type="plane" pos="0 .2 .5" size="1 .5 10" material="background" zaxis="0 -1 0"/>
       <camera name="fixed" pos="0 -16 .4" xyaxes="1 0 0 0 0 1" fovy="4"/>
     </replicate>
@@ -171,7 +171,7 @@
     <motor name="shoulder" joint="arm_shoulder" ctrlrange="-1 1"  gear="8"/>
     <motor name="elbow"    joint="arm_elbow"    ctrlrange="-1 1"  gear="4"/>
     <motor name="wrist"    joint="arm_wrist"    ctrlrange="-1 1"  gear="2"/>
-    <motor name="grasp"    tendon="grasp"       ctrlrange="-1 1"  gear="2"/>
+    <motor name="grasp"    tendon="grasp"       ctrlrange="-1 1"  gear="4"/>
   </actuator>
 
 </mujoco>
