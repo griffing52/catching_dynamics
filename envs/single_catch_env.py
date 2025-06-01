@@ -26,6 +26,12 @@ class SingleCatchEnv(MujocoEnv, utils.EzPickle):
         current_dir = os.path.dirname(os.path.abspath(__file__))
         model_path = os.path.join(current_dir, "..", "models", "single_catch.xml")
 
+        # Set render modes
+        self.metadata = {
+            "render_modes": ["human", "rgb_array", "depth_array"],
+            "render_fps": 200,
+        }
+
         utils.EzPickle.__init__(self)
         MujocoEnv.__init__(
             self,
@@ -112,8 +118,8 @@ class SingleCatchEnv(MujocoEnv, utils.EzPickle):
         self._catch_threshold = 0.05  # 5cm threshold for successful catch
         self._throw_force = 5.0  # Force to apply when throwing
         self._current_thrower = 'right'  # Track which arm is throwing
-        self._switch_interval = 10.0  # Switch every 10 seconds
-        self._time_since_last_switch = 0.0  # Timer for switching
+        self.time_limit = 4.0  # Switch every 10 seconds
+        self.time_elapsed = 0.0  # Timer for switching
 
     def _get_action_space(self):
         return self.action_space
@@ -123,18 +129,19 @@ class SingleCatchEnv(MujocoEnv, utils.EzPickle):
     
     def get_global_categories(self):
         return self.global_categories
+    
+    def reset(self, *, seed=None, options=None):
+        """Reset the environment to initial state."""
+        super().reset(seed=seed)
+        obs = self.reset_model()
+        return obs, {}  # Return observation and empty info dict
         
     def step(self, action):
         # Apply the action
         self.do_simulation(action, self.frame_skip)
         
         # Update timer
-        self._time_since_last_switch += self.dt
-        
-        # Check if it's time to switch thrower
-        if self._time_since_last_switch >= self._switch_interval:
-            self._current_thrower = 'right' if self._current_thrower == 'left' else 'left'
-            self._time_since_last_switch = 0.0
+        self.time_elapsed += self.dt
         
         # Get observations
         obs = self._get_obs()
@@ -143,7 +150,8 @@ class SingleCatchEnv(MujocoEnv, utils.EzPickle):
         reward = self._get_reward()
         
         # Check if episode is done
-        done = self._is_done()
+        terminated = self._is_done()
+        truncated = False  # We don't have any truncation conditions
         
         # Additional info
         info = {
@@ -151,15 +159,12 @@ class SingleCatchEnv(MujocoEnv, utils.EzPickle):
             'ball_position': self.data.xpos[self._ball_id],
             'ball_velocity': self.data.cvel[self._ball_id][3:],  # Only use linear velocity
             'thrower': self._current_thrower,
-            'time_since_switch': self._time_since_last_switch
+            'time_since_switch': self.time_elapsed
         }
         
-        return obs, reward, done, False, info
+        return obs, reward, terminated, truncated, info
         
     def _get_obs(self):
-        # Each agent gets only their own joint positions and velocities
-        thrower_indicator = 1.0 if self._current_thrower == 'left' else 0.0
-
         # Left arm indices: 0-4, right arm indices: 5-9
         left_joint_pos = self.data.qpos[:5]
         left_joint_vel = self.data.qvel[:5]
@@ -170,10 +175,8 @@ class SingleCatchEnv(MujocoEnv, utils.EzPickle):
             left_joint_vel,
         ])
 
-        # Stack as (2, 10) for (n_agents, obs_dim)
-        obs = np.stack([left_obs], axis=0)
-
-        return obs
+        # Return a single observation vector instead of stacking
+        return left_obs
         
     def _get_reward(self):
         ball_pos = self.data.xpos[self._ball_id]
@@ -189,12 +192,9 @@ class SingleCatchEnv(MujocoEnv, utils.EzPickle):
     def _is_done(self):
         ball_pos = self.data.xpos[self._ball_id]
         
-        # Episode ends if:
-        # 1. Ball falls below a certain height
-        # 2. Ball goes too far from the workspace
         return (ball_pos[2] < -0.1 or  # Ball too low
                 abs(ball_pos[0]) > 2.687686 or # Ball too far left/right)
-                self._time_since_last_switch > 2.0) # Time
+                self.time_elapsed > self.time_limit) # Time
         
     def reset_model(self):
         # Set the velocity
@@ -212,7 +212,7 @@ class SingleCatchEnv(MujocoEnv, utils.EzPickle):
         
         # Reset thrower and timer
         self._current_thrower = 'right'
-        self._time_since_last_switch = 0.0
+        self.time_elapsed = 0.0
         
         return self._get_obs()
 
