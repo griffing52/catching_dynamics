@@ -123,15 +123,6 @@
           </body>
         </body>
       </body>
-
-      <!-- props -->
-      <body name="ball" pos=".4 0 .4" childclass="object">
-        <joint name="ball_x" type="slide" axis="1 0 0" ref=".4"/>
-        <joint name="ball_z" type="slide" axis="0 0 1" ref=".4"/>
-        <joint name="ball_y" type="hinge" axis="0 1 0"/>
-        <geom  name="ball" type="sphere" size=".022" />
-        <site  name="ball" type="sphere"/>
-      </body>
       
       <!-- targets -->
       <!-- <body name="target_ball" pos=".4 .001 .4" childclass="ghost">
@@ -140,23 +131,30 @@
       </body> -->
     </replicate>
 
+    <!-- props -->
+    <body name="ball" pos="0 0 0.92" childclass="object">
+      <joint name="ball_x" type="slide" axis="1 0 0" ref=".4"/>
+      <joint name="ball_z" type="slide" axis="0 0 1" ref=".4"/>
+      <joint name="ball_y" type="hinge" axis="0 1 0"/>
+      <geom  name="ball" type="sphere" size=".022" />
+      <site  name="ball" type="sphere"/>
+    </body>
+
     </frame>
   </worldbody>
 
   <tendon>
-    <fixed name="grasp">
-      <joint joint="thumb"  coef=".5"/>
-      <joint joint="finger" coef=".5"/>
+    <!-- Left arm grasp -->
+    <fixed name="grasp0">
+      <joint joint="thumb0"  coef=".5"/>
+      <joint joint="finger0" coef=".5"/>
     </fixed>
-    <fixed name="coupling">
-      <joint joint="thumb"  coef="-.5"/>
-      <joint joint="finger" coef=".5"/>
+    <!-- Right arm grasp -->
+    <fixed name="grasp1">
+      <joint joint="thumb1"  coef=".5"/>
+      <joint joint="finger1" coef=".5"/>
     </fixed>
   </tendon>
-
-  <equality>
-    <tendon name="coupling" tendon1="coupling" solimp="0.95 0.99 0.001" solref=".005 .5"/>
-  </equality>
 
   <sensor>
     <touch name="palm_touch" site="palm_touch"/>
@@ -167,11 +165,19 @@
   </sensor>
 
   <actuator>
-    <motor name="root"     joint="arm_root"     ctrlrange="-1 1"  gear="12"/>
-    <motor name="shoulder" joint="arm_shoulder" ctrlrange="-1 1"  gear="8"/>
-    <motor name="elbow"    joint="arm_elbow"    ctrlrange="-1 1"  gear="4"/>
-    <motor name="wrist"    joint="arm_wrist"    ctrlrange="-1 1"  gear="2"/>
-    <motor name="grasp"    tendon="grasp"       ctrlrange="-1 1"  gear="4"/>
+    <!-- Left arm actuators -->
+    <motor name="root0"     joint="arm_root0"     ctrlrange="-1 1"  gear="12"/>
+    <motor name="shoulder0" joint="arm_shoulder0" ctrlrange="-1 1"  gear="8"/>
+    <motor name="elbow0"    joint="arm_elbow0"    ctrlrange="-1 1"  gear="4"/>
+    <motor name="wrist0"    joint="arm_wrist0"    ctrlrange="-1 1"  gear="2"/>
+    <motor name="grasp0"    tendon="grasp0"       ctrlrange="-1 1"  gear="4"/>
+    
+    <!-- Right arm actuators -->
+    <motor name="root1"     joint="arm_root1"     ctrlrange="-1 1"  gear="12"/>
+    <motor name="shoulder1" joint="arm_shoulder1" ctrlrange="-1 1"  gear="8"/>
+    <motor name="elbow1"    joint="arm_elbow1"    ctrlrange="-1 1"  gear="4"/>
+    <motor name="wrist1"    joint="arm_wrist1"    ctrlrange="-1 1"  gear="2"/>
+    <motor name="grasp1"    tendon="grasp1"       ctrlrange="-1 1"  gear="4"/>
   </actuator>
 
 </mujoco>
