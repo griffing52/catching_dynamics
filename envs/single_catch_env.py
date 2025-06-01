@@ -4,7 +4,7 @@ import numpy as np
 from gymnasium_robotics.envs.multiagent_mujoco.obsk import Node, HyperEdge
 import os
 
-class DualArmEnv(MujocoEnv, utils.EzPickle):
+class SingleCatchEnv(MujocoEnv, utils.EzPickle):
     def __init__(self, **kwargs):
         # Define action space
         self.action_space = spaces.Box(
@@ -18,13 +18,13 @@ class DualArmEnv(MujocoEnv, utils.EzPickle):
         self.observation_space = spaces.Box(
             low=-np.inf,
             high=np.inf,
-            shape=(2, 10 + 4 + 1),  # 2 agents, 5 joint positions, 5 joint velocities, ball position(2), ball velocity(2), thrower indicator
+            shape=(1, 10 + 4 + 1),  # 1 agent, 5 joint positions, 5 joint velocities, ball position(2), ball velocity(2), thrower indicator
             dtype=np.float32
         )
         
         # Get the absolute path to the XML file
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        model_path = os.path.join(current_dir, "..", "models", "dual_arm.xml")
+        model_path = os.path.join(current_dir, "..", "models", "single_catch.xml")
 
         utils.EzPickle.__init__(self)
         MujocoEnv.__init__(
@@ -38,7 +38,6 @@ class DualArmEnv(MujocoEnv, utils.EzPickle):
         # Get body IDs for faster access
         self._ball_id = self.model.body('ball').id
         self._left_hand_id = self.model.body('hand0').id
-        self._right_hand_id = self.model.body('hand1').id
         
         # Get ball joint indices
         self._ball_joint_ids = [
@@ -55,16 +54,9 @@ class DualArmEnv(MujocoEnv, utils.EzPickle):
         self.left_arm_wrist = Node("arm_wrist0", 3, 3, 3)
         self.left_grasp = Node("grasp0", 4, 4, 4)
 
-        # Right Arm
-        self.right_arm_root = Node("arm_root1", 5, 5, 5)
-        self.right_arm_shoulder = Node("arm_shoulder1", 6, 6, 6)
-        self.right_arm_elbow = Node("arm_elbow1", 7, 7, 7)
-        self.right_arm_wrist = Node("arm_wrist1", 8, 8, 8)
-        self.right_grasp = Node("grasp1", 9, 9, 9)
-
         # Create global nodes for ball and thrower information
-        self.ball_node = Node("ball", 10, 10, 10)  # Using index 10 for ball
-        self.thrower_node = Node("thrower", 11, 11, 11)  # Using index 11 for thrower
+        self.ball_node = Node("ball", 5, 5, 5)  # Using index 5 for ball
+        self.thrower_node = Node("thrower", 6, 6, 6)  # Using index 6 for thrower
 
         # Add extra_obs to global nodes
         def get_ball_obs(data):
@@ -102,13 +94,6 @@ class DualArmEnv(MujocoEnv, utils.EzPickle):
                 self.left_arm_wrist,
                 self.left_grasp,
             ),
-            (  # Right Arm Agent
-                self.right_arm_root,
-                self.right_arm_shoulder,
-                self.right_arm_elbow,
-                self.right_arm_wrist,
-                self.right_grasp,
-            ),
         ]
 
         # Define the edges (connections between joints)
@@ -119,11 +104,6 @@ class DualArmEnv(MujocoEnv, utils.EzPickle):
             HyperEdge(self.left_arm_elbow, self.left_arm_wrist),
             HyperEdge(self.left_arm_wrist, self.left_grasp),
             
-            # Right arm connections
-            HyperEdge(self.right_arm_root, self.right_arm_shoulder),
-            HyperEdge(self.right_arm_shoulder, self.right_arm_elbow),
-            HyperEdge(self.right_arm_elbow, self.right_arm_wrist),
-            HyperEdge(self.right_arm_wrist, self.right_grasp),
         ]
 
         # Task-specific variables
@@ -131,7 +111,7 @@ class DualArmEnv(MujocoEnv, utils.EzPickle):
         self._ball_joints = ['_'.join([self._ball, dim]) for dim in 'xzy']
         self._catch_threshold = 0.05  # 5cm threshold for successful catch
         self._throw_force = 5.0  # Force to apply when throwing
-        self._current_thrower = 'left'  # Track which arm is throwing
+        self._current_thrower = 'right'  # Track which arm is throwing
         self._switch_interval = 10.0  # Switch every 10 seconds
         self._time_since_last_switch = 0.0  # Timer for switching
 
@@ -168,7 +148,6 @@ class DualArmEnv(MujocoEnv, utils.EzPickle):
         # Additional info
         info = {
             'left_grasp': self.data.actuator_force[4],
-            'right_grasp': self.data.actuator_force[9],
             'ball_position': self.data.xpos[self._ball_id],
             'ball_velocity': self.data.cvel[self._ball_id][3:],  # Only use linear velocity
             'thrower': self._current_thrower,
@@ -183,84 +162,29 @@ class DualArmEnv(MujocoEnv, utils.EzPickle):
 
         # Left arm indices: 0-4, right arm indices: 5-9
         left_joint_pos = self.data.qpos[:5]
-        right_joint_pos = self.data.qpos[5:10]
         left_joint_vel = self.data.qvel[:5]
-        right_joint_vel = self.data.qvel[5:10]
 
         # For each agent, stack only their own joint pos/vel
         left_obs = np.concatenate([
             left_joint_pos,
             left_joint_vel,
         ])
-        right_obs = np.concatenate([
-            right_joint_pos,
-            right_joint_vel,
-        ])
 
         # Stack as (2, 10) for (n_agents, obs_dim)
-        obs = np.stack([left_obs, right_obs], axis=0)
-
-        print(obs[0], "single")
+        obs = np.stack([left_obs], axis=0)
 
         return obs
         
     def _get_reward(self):
         ball_pos = self.data.xpos[self._ball_id]
-        ball_vel = self.data.cvel[self._ball_id][3:]  # Only use linear velocity
-        
-        # Get hand positions and velocities
         left_hand_pos = self.data.xpos[self._left_hand_id]
-        right_hand_pos = self.data.xpos[self._right_hand_id]
-        left_hand_vel = self.data.cvel[self._left_hand_id][3:]  # Only use linear velocity
-        right_hand_vel = self.data.cvel[self._right_hand_id][3:]  # Only use linear velocity
-        
-        # Calculate distances to ball
-        left_dist = np.linalg.norm(ball_pos - left_hand_pos)
-        right_dist = np.linalg.norm(ball_pos - right_hand_pos)
-        
-        # Calculate velocity differences
-        left_vel_diff = np.linalg.norm(ball_vel - left_hand_vel)
-        right_vel_diff = np.linalg.norm(ball_vel - right_hand_vel)
-        
-        # Reward structure:
-        # 1. Reward for successful catch
-        # 2. Penalty for dropping the ball
-        # 3. Linear reward for hand proximity to ball
-        # 4. Reward for controlling the ball's motion
-        
-        catch_reward = 0
-        if self._current_thrower == 'left':
-            if right_dist < self._catch_threshold and np.linalg.norm(ball_vel) < 0.1:
-                catch_reward = 10.0
-            # Add proximity reward for the catching hand (right)
-            proximity_reward = -right_dist  # Negative distance = closer is better
-            
-            # Control reward: encourage the catching hand to influence the ball's motion
-            # This is high when the ball's velocity is similar to the hand's velocity
-            # AND the hand is close to the ball (indicating control)
-            control_reward = 0.0
-            if right_dist < 0.1:  # Only consider control when hand is close to ball
-                # Higher reward when velocities match and hand is close
-                control_reward = -right_vel_diff * (1.0 - right_dist/0.1)
-        else:
-            if left_dist < self._catch_threshold and np.linalg.norm(ball_vel) < 0.1:
-                catch_reward = 10.0
-            # Add proximity reward for the catching hand (left)
-            proximity_reward = -left_dist  # Negative distance = closer is better
-            
-            # Control reward for left hand
-            control_reward = 0.0
-            if left_dist < 0.1:  # Only consider control when hand is close to ball
-                control_reward = -left_vel_diff * (1.0 - left_dist/0.1)
-        
-        # Penalty for dropping the ball
-        drop_penalty = -5.0 if ball_pos[2] < 0.1 else 0.0
+        arm_center_pos = np.array([-1.5, 0, 0.4])
+        arm_length = 0.52
 
-        # Scale the rewards to be comparable
-        proximity_reward *= 2.0  # Adjust this scaling factor as needed
-        control_reward *= 5.0    # Give high weight to control
+        ball_dist = np.linalg.norm(ball_pos-arm_center_pos)
+        target_length = np.clip(ball_dist, 0.0, arm_length)
         
-        return catch_reward + drop_penalty + proximity_reward + control_reward
+        return -np.linalg.norm((arm_center_pos + target_length * (ball_pos-arm_center_pos)/ball_dist) - left_hand_pos)
         
     def _is_done(self):
         ball_pos = self.data.xpos[self._ball_id]
@@ -268,18 +192,26 @@ class DualArmEnv(MujocoEnv, utils.EzPickle):
         # Episode ends if:
         # 1. Ball falls below a certain height
         # 2. Ball goes too far from the workspace
-        return (ball_pos[2] < 0.01 or  # Ball too low
-                abs(ball_pos[0]) > 3.0)  # Ball too far left/right)
+        return (ball_pos[2] < -0.1 or  # Ball too low
+                abs(ball_pos[0]) > 2.687686 or # Ball too far left/right)
+                self._time_since_last_switch > 2.0) # Time
         
     def reset_model(self):
-        # Reset the model to initial state
-        self.set_state(
-            self.init_qpos,
-            self.init_qvel
-        )
+        # Set the velocity
+        theta = np.random.uniform(np.pi/2 + np.pi/6, np.pi-np.pi/6)
+        far_speed = np.sqrt((2 * 4.905 * (-2.321686 - 1.5))/np.sin(2*theta))
+        near_speed = np.sqrt((2 * 4.905 * (-0.578314 - 1.5))/np.sin(2*theta))
+        speed = np.random.uniform(near_speed, np.clip(far_speed, near_speed, np.clip(7, near_speed, far_speed)))
+        qvel = self.init_qvel.copy()
+        qvel[self._ball_joint_ids[0]] = speed * np.cos(theta)  # x velocity
+        qvel[self._ball_joint_ids[1]] = speed * np.sin(theta)  # z velocity
+        qvel[self._ball_joint_ids[2]] = 0.0   # y angular velocity
+
+        # Apply the new state
+        self.set_state(self.init_qpos, qvel)
         
         # Reset thrower and timer
-        self._current_thrower = 'left'
+        self._current_thrower = 'right'
         self._time_since_last_switch = 0.0
         
         return self._get_obs()

@@ -29,11 +29,7 @@ xml_model = """
 </mujoco>
 """
 
-# If you have humanoid.xml, you can use:
-# model_path = 'dog.xml' # Replace with the actual path if you download one
-model_path = 'models/dual_arm.xml' # Replace with the actual path if you download one
-# model_path = 'arm26.xml' # Replace with the actual path if you download one
-# model_path = 'humanoid.xml' # Replace with the actual path if you download one
+model_path = 'models/single_catch.xml'
 try:
     model = mujoco.MjModel.from_xml_path(model_path)
 except Exception as e:
