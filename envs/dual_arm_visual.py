@@ -52,8 +52,6 @@ def test_environment():
                 
                 # Step the environment
                 obs, rewards, terminations, truncations, infos = env.step(actions)
-                print(obs['agent_0'], "multi")
-                time.sleep(5)
                 
                 # Update episode tracking
                 episode_reward += sum(rewards.values())
