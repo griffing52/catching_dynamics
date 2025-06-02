@@ -69,7 +69,7 @@
     </replicate>
     
     <!-- Arm -->
-    <replicate count="2" offset="3 0 0" euler="0 0 180">
+    <replicate count="1" offset="3 0 0" euler="0 0 180">
       <geom name="arm_root" type="cylinder" fromto="0 -.022 .4 0 .022 .4" size=".024"
             material="decoration" contype="0" conaffinity="0"/>
       <body name="upper_arm" pos="0 0 .4" childclass="arm">
@@ -132,7 +132,7 @@
     </replicate>
 
     <!-- props -->
-    <body name="ball" pos="0 0 0.92" childclass="object">
+    <body name="ball" pos="3 0 0.565686" childclass="object">
       <joint name="ball_x" type="slide" axis="1 0 0" ref=".4"/>
       <joint name="ball_z" type="slide" axis="0 0 1" ref=".4"/>
       <joint name="ball_y" type="hinge" axis="0 1 0"/>
@@ -148,11 +148,6 @@
     <fixed name="grasp0">
       <joint joint="thumb0"  coef=".5"/>
       <joint joint="finger0" coef=".5"/>
-    </fixed>
-    <!-- Right arm grasp -->
-    <fixed name="grasp1">
-      <joint joint="thumb1"  coef=".5"/>
-      <joint joint="finger1" coef=".5"/>
     </fixed>
   </tendon>
 
@@ -171,13 +166,6 @@
     <motor name="elbow0"    joint="arm_elbow0"    ctrlrange="-1 1"  gear="4"/>
     <motor name="wrist0"    joint="arm_wrist0"    ctrlrange="-1 1"  gear="2"/>
     <motor name="grasp0"    tendon="grasp0"       ctrlrange="-1 1"  gear="4"/>
-    
-    <!-- Right arm actuators -->
-    <motor name="root1"     joint="arm_root1"     ctrlrange="-1 1"  gear="12"/>
-    <motor name="shoulder1" joint="arm_shoulder1" ctrlrange="-1 1"  gear="8"/>
-    <motor name="elbow1"    joint="arm_elbow1"    ctrlrange="-1 1"  gear="4"/>
-    <motor name="wrist1"    joint="arm_wrist1"    ctrlrange="-1 1"  gear="2"/>
-    <motor name="grasp1"    tendon="grasp1"       ctrlrange="-1 1"  gear="4"/>
   </actuator>
 
 </mujoco>
