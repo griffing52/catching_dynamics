@@ -10,7 +10,7 @@ class SingleCatchEnv(MujocoEnv, utils.EzPickle):
         self.action_space = spaces.Box(
             low=-1.0,
             high=1.0,
-            shape=(10,),  # 5 actuators per arm
+            shape=(5,),  # 5 actuators per arm
             dtype=np.float32
         )
 
@@ -173,10 +173,10 @@ class SingleCatchEnv(MujocoEnv, utils.EzPickle):
         left_obs = np.concatenate([
             left_joint_pos,
             left_joint_vel,
-        ])
+        ], dtype=np.float32)
 
         # Return a single observation vector instead of stacking
-        return left_obs
+        return np.stack([left_obs], axis=0)
         
     def _get_reward(self):
         ball_pos = self.data.xpos[self._ball_id]
