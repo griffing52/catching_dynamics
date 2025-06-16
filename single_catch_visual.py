@@ -85,7 +85,7 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
 
                 distr = torch.distributions.Normal(
                     loc=action_dist_inputs[:5],
-                    scale=torch.exp(action_dist_inputs[5:])
+                    scale=torch.exp(action_dist_inputs[5:])*0+0.0001
                 )
                 actions = distr.sample().numpy()
 
