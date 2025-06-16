@@ -1,4 +1,5 @@
 import mujoco
+import mujoco.viewer
 import time
 import os, ray
 from ray.tune.registry import register_env
