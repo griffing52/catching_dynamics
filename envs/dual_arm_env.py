@@ -26,6 +26,12 @@ class DualArmEnv(MujocoEnv, utils.EzPickle):
         current_dir = os.path.dirname(os.path.abspath(__file__))
         model_path = os.path.join(current_dir, "..", "models", "dual_arm.xml")
 
+        # Set render modes
+        self.metadata = {
+            "render_modes": ["human", "rgb_array", "depth_array"],
+            "render_fps": 200,
+        }
+
         utils.EzPickle.__init__(self)
         MujocoEnv.__init__(
             self,
@@ -143,6 +149,12 @@ class DualArmEnv(MujocoEnv, utils.EzPickle):
     
     def get_global_categories(self):
         return self.global_categories
+
+    def reset(self, *, seed=None, options=None):
+        """Reset the environment to initial state."""
+        super().reset(seed=seed)
+        obs = self.reset_model()
+        return obs, {}  # Return observation and empty info dict
         
     def step(self, action):
         # Apply the action
@@ -163,7 +175,8 @@ class DualArmEnv(MujocoEnv, utils.EzPickle):
         reward = self._get_reward()
         
         # Check if episode is done
-        done = self._is_done()
+        terminated = self._is_done()
+        truncated = False  # We don't have any truncation conditions
         
         # Additional info
         info = {
@@ -175,7 +188,7 @@ class DualArmEnv(MujocoEnv, utils.EzPickle):
             'time_since_switch': self._time_since_last_switch
         }
         
-        return obs, reward, done, False, info
+        return obs, reward, terminated, truncated, info
         
     def _get_obs(self):
         # Each agent gets only their own joint positions and velocities
@@ -191,16 +204,14 @@ class DualArmEnv(MujocoEnv, utils.EzPickle):
         left_obs = np.concatenate([
             left_joint_pos,
             left_joint_vel,
-        ])
+        ], dtype=np.float32)
         right_obs = np.concatenate([
             right_joint_pos,
             right_joint_vel,
-        ])
+        ], dtype=np.float32)
 
         # Stack as (2, 10) for (n_agents, obs_dim)
         obs = np.stack([left_obs, right_obs], axis=0)
-
-        print(obs[0], "single")
 
         return obs
         
@@ -268,8 +279,8 @@ class DualArmEnv(MujocoEnv, utils.EzPickle):
         # Episode ends if:
         # 1. Ball falls below a certain height
         # 2. Ball goes too far from the workspace
-        return (ball_pos[2] < 0.01 or  # Ball too low
-                abs(ball_pos[0]) > 3.0)  # Ball too far left/right)
+        return (ball_pos[2] < -0.1 or  # Ball too low
+                abs(ball_pos[0]) > 2.687686) # Ball too far left/right)
         
     def reset_model(self):
         # Reset the model to initial state

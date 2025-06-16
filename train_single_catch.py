@@ -9,6 +9,7 @@ import ray
 import gymnasium as gym  # noqa: F401 – ensure Gymnasium API is active
 from gymnasium.spaces import Box
 from gymnasium_robotics import mamujoco_v1
+from ray.rllib.algorithms import Algorithm
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
 from ray.rllib.utils.metrics import (
@@ -117,6 +118,13 @@ def main(args: argparse.Namespace):
     checkpoint_root = os.path.abspath(args.checkpoint_dir)
     os.makedirs(checkpoint_root, exist_ok=True)
 
+    # Restore from checkpoint
+    if args.restore_checkpoint:
+        try:
+            algo.restore_from_path(checkpoint_root)
+        except:
+            print("Failed to restore checkpoint")
+
     for itr in range(1, args.num_iters + 1):
         result = algo.train()
 
@@ -140,7 +148,8 @@ if __name__ == "__main__":
     parser.add_argument("--num-iters", type=int, default=300)
     parser.add_argument("--num-workers", type=int, default=4)
     parser.add_argument("--num-gpus", type=int, default=0)
-    parser.add_argument("--train-batch-size", type=int, default=10000)
+    parser.add_argument("--train-batch-size", type=int, default=32000)
     parser.add_argument("--checkpoint-freq", type=int, default=25)
     parser.add_argument("--checkpoint-dir", type=str, default="checkpoints_sc")
+    parser.add_argument("--restore-checkpoint", type=bool, default=True)
     main(parser.parse_args())
