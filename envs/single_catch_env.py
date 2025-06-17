@@ -4,6 +4,8 @@ import numpy as np
 from gymnasium_robotics.envs.multiagent_mujoco.obsk import Node, HyperEdge
 import os
 
+from mujoco import mj_multiRay
+
 class SingleCatchEnv(MujocoEnv, utils.EzPickle):
     def __init__(self, **kwargs):
         # Define action space
@@ -304,7 +306,7 @@ class SingleCatchEnv(MujocoEnv, utils.EzPickle):
         geomgroup = np.array([0,0,0,1,0,0], dtype=np.uint8)
 
         # Call raycast
-        mujoco.mj_multiRay(self.model, self.data, origin, directions, 
+        mj_multiRay(self.model, self.data, origin, directions, 
                         geomgroup, 
                         flg_static=1,            # Include static geoms
                         bodyexclude=-1,          # No exclusion

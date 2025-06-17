@@ -133,7 +133,7 @@
     </replicate>
 
     <!-- props -->
-    <body name="ball" pos="3 0 0.565686" childclass="object" group="3">
+    <body name="ball" pos="3 0 0.565686" childclass="object" group="2">
       <joint name="ball_x" type="slide" axis="1 0 0" ref=".4"/>
       <joint name="ball_z" type="slide" axis="0 0 1" ref=".4"/>
       <joint name="ball_y" type="hinge" axis="0 1 0"/>

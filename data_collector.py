@@ -62,11 +62,49 @@ step_count = 0
 max_steps = 1000  # Maximum steps per episode
 
 # Slow down the simulation
-base_env .model.opt.timestep = 0.01  # Slower physics timestep
+base_env.model.opt.timestep = 0.01  # Slower physics timestep
 base_env.model.opt.iterations = 20  # More physics iterations per step
 
 print("Starting environment test...")
 print("Press Ctrl+C to exit")
+
+def add_lines_to_viewer(viewer, points, color, width=0.005):
+    """
+    Adds a set of lines to the passive viewer scene.
+
+    Args:
+        viewer: The viewer handle returned by mujoco.viewer.launch_passive.
+        points: A list of (start_point, end_point) tuples.
+                Each point should be a 3D numpy array.
+        color: A list or numpy array of 4 floats (r, g, b, a).
+        width: The width of the lines.
+    """
+    # Reset the number of geoms to 0 to clear previous lines
+    viewer.user_scn.ngeom = 0
+    
+    for start, end in points:
+        if viewer.user_scn.ngeom >= viewer.user_scn.maxgeom:
+            break  # Stop if we've run out of geoms
+
+        # Get the next available geom from the scene
+        geom = viewer.user_scn.geoms[viewer.user_scn.ngeom]
+
+        # === THE FIX IS HERE ===
+        # 1. Set the color of the geom directly.
+        #    Use slicing [:] to ensure the array is modified in place.
+        geom.rgba[:] = color
+        
+        # 2. Call mjv_makeConnector WITHOUT the color arguments.
+        mujoco.mjv_makeConnector(
+            geom,
+            mujoco.mjtGeom.mjGEOM_LINE,
+            width,
+            start[0], start[1], start[2],
+            end[0], end[1], end[2]
+        )
+        
+        # Increment the geom counter
+        viewer.user_scn.ngeom += 1
 
 # Use MuJoCo's native viewer
 with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
@@ -96,33 +134,36 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
                 episode_reward += sum(rewards.values())
                 step_count += 1
 
-                geomid, dist = env.raycast(starting_angle=-45, fov=60, nray=11)
+                starting_angle = -45
+                fov = 60
+                nray = 11
+                geomid, dist = base_env.raycast(starting_angle, fov, nray)
                 
                 # Visualize rays
-                for i in range(env.nray):
+                ray_points = []
+                for i in range(nray):
                     # Get the starting point of the ray (e.g., the position of the sensor)
-                    start_pos = base_env.data.site('lidar_site').xpos 
+                    start_pos = base_env.data.xpos[base_env.model.camera('eye0').id]
+                    if step_count % 100 == 0:
+                        print(start_pos)
 
                     # Calculate the direction of the ray
-                    angle = np.deg2rad(env.starting_angle + i * env.fov / (env.nray - 1))
-                    direction = np.array([np.cos(angle), np.sin(angle), 0]) # Assuming 2D rays on the XY plane
+                    angle = np.deg2rad(starting_angle + i * fov / (nray - 1))
+                    direction = np.array([np.cos(angle), 0, np.sin(angle)]) # Assuming 2D rays on the XY plane
 
-                    # Determine the end point of the ray
+                    # Determine the end point of the 
                     if geomid[i] != -1: # -1 indicates no collision
                         end_pos = start_pos + dist[i] * direction
                     else:
                         # If no collision, draw the ray to its maximum length
                         max_range = 10.0 # Define a maximum range for visualization
                         end_pos = start_pos + max_range * direction
+                    ray_points.append((start_pos, end_pos))
 
-                    # Add a line geom to visualize the ray
-                    viewer.add_marker(
-                        pos=np.vstack([start_pos, end_pos]),
-                        type=mujoco.mjtGeom.mjGEOM_LINE,
-                        label=f"ray_{i}",
-                        size=[0.005, 0, 0],  # Line width
-                        rgba=[1, 0, 0, 0.5]  # Red color with some transparency
-                    )
+                add_lines_to_viewer(viewer, ray_points, color=[1, 0, 0, 0.5])
+
+                # Synchronize the viewer to render the lines
+                viewer.sync()
 
                 # Print information every 100 steps
                 if step_count % 100 == 0:
