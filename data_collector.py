@@ -136,16 +136,14 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
 
                 starting_angle = -45
                 fov = 60
-                nray = 11
+                nray = 41
                 geomid, dist = base_env.raycast(starting_angle, fov, nray)
                 
                 # Visualize rays
                 ray_points = []
                 for i in range(nray):
                     # Get the starting point of the ray (e.g., the position of the sensor)
-                    start_pos = base_env.data.xpos[base_env.model.camera('eye0').id]
-                    if step_count % 100 == 0:
-                        print(start_pos)
+                    start_pos = base_env.data.cam_xpos[base_env.model.camera('eye0').id]
 
                     # Calculate the direction of the ray
                     angle = np.deg2rad(starting_angle + i * fov / (nray - 1))
@@ -160,10 +158,7 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
                         end_pos = start_pos + max_range * direction
                     ray_points.append((start_pos, end_pos))
 
-                add_lines_to_viewer(viewer, ray_points, color=[1, 0, 0, 0.5])
-
-                # Synchronize the viewer to render the lines
-                viewer.sync()
+                add_lines_to_viewer(viewer, ray_points, color=[0, 1, 0, 1], width=0.02)
 
                 # Print information every 100 steps
                 if step_count % 100 == 0:

@@ -278,11 +278,8 @@ class SingleCatchEnv(MujocoEnv, utils.EzPickle):
         """
         cam_id = self.model.camera('eye0').id
 
-        origin = np.array(self.data.xpos[cam_id], dtype=np.float64)
+        origin = np.array(self.data.cam_xpos[cam_id], dtype=np.float64)
 
-        starting_angle = -45  # Starting angle in degrees
-        fov = 45 # degrees
-        nray = 31 # number of rays
         angle_step = fov / (nray - 1)  # Angle step between rays
 
         angles = np.linspace(starting_angle - fov / 2, starting_angle + fov / 2, nray)  # Generate angles for rays\
@@ -303,7 +300,7 @@ class SingleCatchEnv(MujocoEnv, utils.EzPickle):
         # for i in range(model.ngeom):
         #     if model.geom_group[i] == 3:
         #         geomgroup[i] = 1
-        geomgroup = np.array([0,0,0,1,0,0], dtype=np.uint8)
+        geomgroup = np.array([0,1,1,1,1,1], dtype=np.uint8)
 
         # Call raycast
         mj_multiRay(self.model, self.data, origin, directions, 
@@ -314,5 +311,9 @@ class SingleCatchEnv(MujocoEnv, utils.EzPickle):
                         dist=dist,
                         nray=nray,
                         cutoff=10.0)             # Max ray length
+        
+        # for i in range(nray):
+        #     if dist[i] > 0:
+        #         print(f"Ray {i}: Hit geom {geomid[i]} at distance {dist[i]}")
 
         return geomid, dist
