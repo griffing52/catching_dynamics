@@ -134,9 +134,9 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
                 episode_reward += sum(rewards.values())
                 step_count += 1
 
-                starting_angle = -45
+                starting_angle = -30
                 fov = 60
-                nray = 41
+                nray = 51
                 geomid, dist = base_env.raycast(starting_angle, fov, nray)
                 
                 # Visualize rays
@@ -146,7 +146,7 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
                     start_pos = base_env.data.cam_xpos[base_env.model.camera('eye0').id]
 
                     # Calculate the direction of the ray
-                    angle = np.deg2rad(starting_angle + i * fov / (nray - 1))
+                    angle = np.deg2rad(starting_angle - fov/2 + i * fov / (nray - 1))
                     direction = np.array([np.cos(angle), 0, np.sin(angle)]) # Assuming 2D rays on the XY plane
 
                     # Determine the end point of the 
@@ -154,7 +154,7 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
                         end_pos = start_pos + dist[i] * direction
                     else:
                         # If no collision, draw the ray to its maximum length
-                        max_range = 10.0 # Define a maximum range for visualization
+                        max_range = 5.0 # Define a maximum range for visualization
                         end_pos = start_pos + max_range * direction
                     ray_points.append((start_pos, end_pos))
 

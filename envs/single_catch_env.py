@@ -310,7 +310,7 @@ class SingleCatchEnv(MujocoEnv, utils.EzPickle):
                         geomid=geomid,
                         dist=dist,
                         nray=nray,
-                        cutoff=10.0)             # Max ray length
+                        cutoff=5.0)             # Max ray length
         
         # for i in range(nray):
         #     if dist[i] > 0:
