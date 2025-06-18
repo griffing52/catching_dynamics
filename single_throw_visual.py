@@ -59,11 +59,11 @@ terminations = {"__all__": False}
 # Initialize episode tracking
 episode_reward = 0
 step_count = 0
-max_steps = 1000  # Maximum steps per episode
+max_steps = 10000  # Maximum steps per episode
 
-# Slow down the simulation
-base_env .model.opt.timestep = 0.001  # Slower physics timestep
-base_env.model.opt.iterations = 20  # More physics iterations per step
+# # Slow down the simulation
+# base_env .model.opt.timestep = 0.001  # Slower physics timestep
+# base_env.model.opt.iterations = 20  # More physics iterations per step
 
 print("Starting environment test...")
 print("Press Ctrl+C to exit")

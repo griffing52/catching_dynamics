@@ -146,9 +146,9 @@ def main(args: argparse.Namespace):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--num-iters", type=int, default=300)
-    parser.add_argument("--num-workers", type=int, default=4)
-    parser.add_argument("--num-gpus", type=int, default=0)
+    parser.add_argument("--num-iters", type=int, default=900)
+    parser.add_argument("--num-workers", type=int, default=12)
+    parser.add_argument("--num-gpus", type=int, default=1)
     parser.add_argument("--train-batch-size", type=int, default=32000)
     parser.add_argument("--checkpoint-freq", type=int, default=25)
     parser.add_argument("--checkpoint-dir", type=str, default="checkpoints_st")

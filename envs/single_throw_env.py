@@ -173,16 +173,31 @@ class SingleThrowEnv(MujocoEnv, utils.EzPickle):
         # Dense shaping reward
         reward = 0.0
 
-        # 1. Strong reward for forward x-velocity and position
-        reward += 5.0 * ball_vel[0]
-        if(ball_pos[0] > 0.25): reward += ball_pos[0]
+        # hand contact?
+        hand_contact = False
+        for contact in self.data.contact:
+            if ((contact.geom1 == self.model.geom("ball").id and contact.geom2 == self.model.geom("hand0").id) or
+            (contact.geom1 == self.model.geom("ball").id and contact.geom2 == self.model.geom("palm10").id) or
+            (contact.geom1 == self.model.geom("ball").id and contact.geom2 == self.model.geom("palm20").id) or
+            (contact.geom1 == self.model.geom("ball").id and contact.geom2 == self.model.geom("thumb10").id) or
+            (contact.geom1 == self.model.geom("ball").id and contact.geom2 == self.model.geom("thumb20").id) or
+            (contact.geom1 == self.model.geom("ball").id and contact.geom2 == self.model.geom("thumbtip10").id) or
+            (contact.geom1 == self.model.geom("ball").id and contact.geom2 == self.model.geom("thumbtip20").id) or
+            (contact.geom1 == self.model.geom("ball").id and contact.geom2 == self.model.geom("finger10").id) or
+            (contact.geom1 == self.model.geom("ball").id and contact.geom2 == self.model.geom("finger20").id) or
+            (contact.geom1 == self.model.geom("ball").id and contact.geom2 == self.model.geom("fingertip10").id) or
+            (contact.geom1 == self.model.geom("ball").id and contact.geom2 == self.model.geom("fingertip20").id)):
+                hand_contact = True
 
-        # for contact in self.data.contact:
-        #     if contact.geom1 == self.model.geom("ball") or contact.geom2 == self.model.geom("ball"):
-        #         print("Ball is in contact with the hand!")
+        # 1. Strong reward for forward x-velocity and position. Multiplied if not touching hand.
+        out_hand_multiplier = 1
+        if not hand_contact: 
+            out_hand_multiplier = 1.5
+        reward += 1.0 * ball_vel[0]
+        if(ball_pos[0] > 0.5): reward += ball_pos[0] * out_hand_multiplier
+        elif(ball_pos[0] > 0.25): reward += ball_pos[0]
 
-
-        # # 2. Weaker reward for upward y-velocity
+        # # 2. Weaker reward for upward y-velocityg
         # reward += 1.0 * ball_vel[2]
 
         # # 3. Bonus for proximity to target (within 1.0m)
@@ -200,7 +215,20 @@ class SingleThrowEnv(MujocoEnv, utils.EzPickle):
 
     def _is_done(self):
         ball_pos = self.data.xpos[self._ball_id]
+
+        arena_contact = False
+        for contact in self.data.contact:
+            if ((contact.geom1 == self.model.geom("ball").id and contact.geom2 == self.model.geom("floor0").id) or
+            (contact.geom1 == self.model.geom("ball").id and contact.geom2 == self.model.geom("wall1_finite0").id) or
+            (contact.geom1 == self.model.geom("ball").id and contact.geom2 == self.model.geom("wall2_finite0").id) or
+            (contact.geom1 == self.model.geom("ball").id and contact.geom2 == self.model.geom("floor1").id) or
+            (contact.geom1 == self.model.geom("ball").id and contact.geom2 == self.model.geom("wall1_finite1").id) or
+            (contact.geom1 == self.model.geom("ball").id and contact.geom2 == self.model.geom("wall2_finite1").id)):
+                arena_contact = True
+
+
         return (
+            (arena_contact and ball_pos[1] < 1.5) or # is ball in contact with closer arena?
             ball_pos[2] < -0.1 or
             self.time_elapsed > self._max_time
         )
