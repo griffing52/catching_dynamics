@@ -102,7 +102,7 @@ class SingleThrowEnv(MujocoEnv, utils.EzPickle):
         self._target_radius = 0.2
         self._min_throw_velocity = 0.25
         self._current_catcher = 'right'  # Track which arm is throwing
-        self._max_time = 3.0
+        self._max_time = 4.0
         self.time_elapsed = 0.0
 
     def _get_action_space(self):
@@ -122,15 +122,19 @@ class SingleThrowEnv(MujocoEnv, utils.EzPickle):
         qpos = self.init_qpos.copy()
         qvel = self.init_qvel.copy()
 
-        # Place ball in hand
-        ball_offset = np.array([0.05, 0.0, 0.0])  # relative to hand
-        hand_pos = self.data.xpos[self._hand_id]
-        ball_pos = hand_pos + ball_offset
+        # # Place ball in hand
+        # ball_offset = np.array([0.0, 0.0, 0.0])  # relative to hand
+        # hand_pos = self.data.xpos[self._hand_id]
+        # ball_pos = hand_pos + ball_offset
 
-        # Manually override ball position
-        qpos[self._ball_joint_ids[0]] = ball_pos[0]
-        qpos[self._ball_joint_ids[1]] = ball_pos[2]
-        qpos[self._ball_joint_ids[2]] = ball_pos[1]  # y-angle
+        # print(hand_pos)
+
+        # init_ball_pos = np.array([-1.5, 0.0, 1.0])
+
+        # # Manually override ball position
+        # qpos[self._ball_joint_ids[0]] = init_ball_pos[0]
+        # qpos[self._ball_joint_ids[1]] = init_ball_pos[2]
+        # qpos[self._ball_joint_ids[2]] = init_ball_pos[1]  # y-angle
 
         self.set_state(qpos, qvel)
         self.time_elapsed = 0.0
@@ -165,15 +169,32 @@ class SingleThrowEnv(MujocoEnv, utils.EzPickle):
     def _get_reward(self):
         ball_pos = self.data.xpos[self._ball_id]
         ball_vel = self.data.cvel[self._ball_id][3:]
-        ball_speed = np.linalg.norm(ball_vel[:2])  # xz speed
 
+        # Dense shaping reward
         reward = 0.0
 
-        if ball_speed > self._min_throw_velocity:
-            # reward for throwing toward the right (x+) direction and distance
-            distance_to_target = abs(ball_pos[0] - self._target_x)
-            within_target = distance_to_target < self._target_radius
-            reward += 10.0 if within_target else 5.0 * (2.0 - np.clip(distance_to_target, 0.0, 2.0))
+        # 1. Strong reward for forward x-velocity and position
+        reward += 5.0 * ball_vel[0]
+        if(ball_pos[0] > 0.25): reward += ball_pos[0]
+
+        # for contact in self.data.contact:
+        #     if contact.geom1 == self.model.geom("ball") or contact.geom2 == self.model.geom("ball"):
+        #         print("Ball is in contact with the hand!")
+
+
+        # # 2. Weaker reward for upward y-velocity
+        # reward += 1.0 * ball_vel[2]
+
+        # # 3. Bonus for proximity to target (within 1.0m)
+        # distance_to_target = abs(ball_pos[0] - self._target_x)
+        # reward += 1.0 * max(0.0, 1.0 - distance_to_target)
+
+        # # 4. Success bonus: ball is thrown strong and is near target
+        # if np.linalg.norm(ball_vel[:2]) > self._min_throw_velocity:
+        #     if distance_to_target < self._target_radius:
+        #         reward += 10.0  # strong bonus for a good throw
+        #     else:
+        #         reward += 5.0 * (2.0 - np.clip(distance_to_target, 0.0, 2.0))
 
         return reward
 
