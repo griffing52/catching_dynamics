@@ -70,8 +70,11 @@
     
     <!-- Arm -->
     <replicate count="1" offset="3 0 0" euler="0 0 180">
-      <camera name="eye" pos="-0.7 0 1.5" xyaxes="0 -1 0 0.6 0 1" fovy="90" mode="fixed"></camera>
-      <geom name="eye_geom" type="sphere" pos="-0.7 0 1.5" size=".02" material="self"/>
+      <frame pos="-1.2 0 1.5">
+        <camera name="eye" xyaxes="0 -1 0 0.6 0 1" fovy="90" mode="fixed"></camera>
+        <geom name="eye_geom" type="sphere" size=".1" rgba="1 1 1 1"/>
+        <geom name="pupil_geom" pos="0.01 0 -0.01" type="sphere" size=".09" rgba="0 0 0 1"/>
+      </frame>
       <geom name="arm_root" type="cylinder" fromto="0 -.022 .4 0 .022 .4" size=".024"
             material="decoration" contype="0" conaffinity="0"/>
       <body name="upper_arm" pos="0 0 .4" childclass="arm">

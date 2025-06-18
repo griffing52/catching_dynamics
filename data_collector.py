@@ -140,8 +140,9 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
 
                 starting_angle = -30
                 fov = 60
-                nray = 31
-                geomid, dist = base_env.raycast(starting_angle, fov, nray)
+                nray = 107
+                max_range = 5.5 # Define a maximum range for visualization
+                geomid, dist = base_env.raycast(starting_angle, fov, nray, max_range)
                 
                 # Visualize rays
                 ray_points = []
@@ -158,13 +159,12 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
                         end_pos = start_pos + dist[i] * direction
                     else:
                         # If no collision, draw the ray to its maximum length
-                        max_range = 5.0 # Define a maximum range for visualization
                         end_pos = start_pos + max_range * direction
                     ray_points.append((start_pos, end_pos))
 
                 add_lines_to_viewer(viewer, ray_points, color=[0, 1, 0, 1], width=0.02)
                 
-                ray_output = dist > 0
+                ray_output = dist
 
                 ball_pos = [base_env.data.xpos[base_env._ball_id][0], base_env.data.xpos[base_env._ball_id][2]]
                 ball_vel = [base_env.data.cvel[base_env._ball_id][3], base_env.data.cvel[base_env._ball_id][5]]
@@ -179,8 +179,6 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
                     print(f"Current thrower: {infos['agent_0']['thrower']}")
                     print(f"Ball position: {infos['agent_0']['ball_position']}")
                     print(f"Episode reward so far: {episode_reward:.2f}")
-                    print(f"X: {X}")
-                    print(f"y: {y}")
 
                 # Check if episode is done
                 if all(terminations.values()) or all(truncations.values()) or step_count >= max_steps:
@@ -216,8 +214,8 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
         print("\nTest terminated by user")
     finally:
         env.close()
-        print("Environment closed")
+        print("Environment closed") 
 
         np.save("collected_data_input.npy", collected_data_input)
         np.save("collected_data_output.npy", collected_data_output)
-        print("Collected data saved to 'collected_data_input.npy' and 'collected_data_output.npy'")
+        print("Collected data saved to 'collected_data_input.npy' and 'collected_data_output.npy' with shapes:", collected_data_input.shape, collected_data_output.shape)

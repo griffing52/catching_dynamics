@@ -264,7 +264,7 @@ class SingleCatchEnv(MujocoEnv, utils.EzPickle):
             "global_categories": self.global_categories
         }
     
-    def raycast(self, starting_angle=0, fov=45, nray=9):
+    def raycast(self, starting_angle=0, fov=45, nray=9, max_range=6.0):
         """
         Calculates raycast result (evenly distributed angularly)--only observes group 3 objects, which includes ball
 
@@ -310,7 +310,7 @@ class SingleCatchEnv(MujocoEnv, utils.EzPickle):
                         geomid=geomid,
                         dist=dist,
                         nray=nray,
-                        cutoff=5.0)             # Max ray length
+                        cutoff=max_range)             # Max ray length
         
         # for i in range(nray):
         #     if dist[i] > 0:
