@@ -20,9 +20,10 @@ from envs.single_catch_env import SingleCatchEnv          # your Gymnasium base
 from gymnasium_robotics import mamujoco_v1
 from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
 
+from collections import deque
 
-collected_data_input = np.array([])
-collected_data_output = np.array([])
+collected_data_input = []
+collected_data_output = []
 
 base_env = SingleCatchEnv()
 
@@ -114,6 +115,7 @@ def add_lines_to_viewer(viewer, points, color, width=0.005):
 with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
     try:
         while True:
+            data_queue = deque(maxlen=5)  # Queue to hold the last 5 ray cast outputs  
             while viewer.is_running() and not terminations["__all__"]:
                 step_start = time.time()
 
@@ -170,8 +172,11 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
                 ball_vel = [base_env.data.cvel[base_env._ball_id][3], base_env.data.cvel[base_env._ball_id][5]]
                 y = np.array(ball_pos + ball_vel)
                 X = ray_output
-                np.append(collected_data_input, X)
-                np.append(collected_data_output, y)
+                data_queue.append(X)
+
+                if len(data_queue) >= 5:
+                    collected_data_input.append(list(data_queue))
+                    collected_data_output.append(y)
 
                 # Print information every 100 steps
                 if step_count % 100 == 0:
@@ -190,6 +195,7 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
                     obs, info = env.reset()
                     episode_reward = 0
                     step_count = 0
+                    data_queue.clear()
                     print("\nStarting new episode...")
 
                 # Synchronize the viewer
@@ -216,6 +222,8 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
         env.close()
         print("Environment closed") 
 
+        collected_data_input = np.array(collected_data_input)
+        collected_data_output = np.array(collected_data_output)
+        print("Collected data saved to 'collected_data_input.npy' and 'collected_data_output.npy' with shapes:", collected_data_input.shape, collected_data_output.shape)
         np.save("collected_data_input.npy", collected_data_input)
         np.save("collected_data_output.npy", collected_data_output)
-        print("Collected data saved to 'collected_data_input.npy' and 'collected_data_output.npy' with shapes:", collected_data_input.shape, collected_data_output.shape)
