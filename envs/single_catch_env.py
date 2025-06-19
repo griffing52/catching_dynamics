@@ -45,6 +45,7 @@ class SingleCatchEnv(MujocoEnv, utils.EzPickle):
         
         # Get body IDs for faster access
         self._ball_id = self.model.body('ball').id
+        self._target_ball_id = self.model.body('target_ball').id
         self._left_hand_id = self.model.body('hand0').id
         self._pinch_site_id = self.model.body('pinch site0').id
         self._finger_id = self.model.body('finger0').id

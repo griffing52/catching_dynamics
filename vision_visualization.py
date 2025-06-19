@@ -21,10 +21,7 @@ from gymnasium_robotics import mamujoco_v1
 from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
 
 from collections import deque
-
-collected_data_rays = []
-collected_data_pos = []
-collected_data_vel = []
+from vision.CNN_LSTM import GatedFusionModel 
 
 base_env = SingleCatchEnv()
 
@@ -71,6 +68,20 @@ max_steps = 1000  # Maximum steps per episode
 base_env.model.opt.timestep = 0.01  # Slower physics timestep
 base_env.model.opt.iterations = 20  # More physics iterations per step
 
+print("Loading vision model...")
+T=5 # Number of time steps to consider for the LSTM
+position_buffer = deque(maxlen=T)
+raycast_buffer = deque(maxlen=T)
+
+# Initialize buffers for position and raycast data
+for _ in range(T):
+    position_buffer.append(torch.tensor([np.random.normal(loc=-1.27113819, scale=0.7155363), np.random.normal(loc=0.35084985, scale=0.54217707)]))  # start at (0, 0)
+    raycast_buffer.append(torch.ones(107) * -1)  # placeholder for no hit
+
+vision_model = GatedFusionModel(num_rays=107)
+vision_model.load_state_dict(torch.load("vision/gated_model.pth"))
+print("Vision model loaded successfully")
+
 print("Starting environment test...")
 print("Press Ctrl+C to exit")
 
@@ -112,20 +123,10 @@ def add_lines_to_viewer(viewer, points, color, width=0.005):
         # Increment the geom counter
         viewer.user_scn.ngeom += 1
 
-
-    
 # Use MuJoCo's native viewer
 with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
     try:
         while True:
-            nray = 107 # Number of rays to cast
-            T=5 # Number of sequential frames to collect data for
-            
-            data_queue = deque(maxlen=T)  # Queue to hold the last 5 ray cast outputs  
-            pos_queue = deque(maxlen=T)  # Queue to hold the last 5 position data
-            for _ in range(T):
-                data_queue.append(np.ones((nray,)) * -1)  # Assuming 107 rays
-                pos_queue.append([np.random.normal(loc=-1.27113819, scale=0.7155363), np.random.normal(loc=0.35084985, scale=0.54217707)])  # Initial position with mean and std
             while viewer.is_running() and not terminations["__all__"]:
                 step_start = time.time()
 
@@ -152,6 +153,7 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
 
                 starting_angle = -30
                 fov = 60
+                nray = 107
                 max_range = 5.5 # Define a maximum range for visualization
                 geomid, dist = base_env.raycast(starting_angle, fov, nray, max_range)
                 
@@ -175,21 +177,38 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
 
                 add_lines_to_viewer(viewer, ray_points, color=[0, 1, 0, 1], width=0.02)
                 
-                ray_output = dist
+                ray_output = torch.tensor(dist, dtype=torch.float32)
 
-                ball_pos = [base_env.data.xpos[base_env._ball_id][0], base_env.data.xpos[base_env._ball_id][2]]
-                ball_vel = [base_env.data.cvel[base_env._ball_id][3], base_env.data.cvel[base_env._ball_id][5]]
-                # y = np.array(ball_pos + ball_vel)
-            
-                data_queue.append(ray_output)
-                pos_queue.append(ball_pos)
+                # ball_pos = [base_env.data.xpos[base_env._ball_id][0], base_env.data.xpos[base_env._ball_id][2]]
+                # ball_vel = [base_env.data.cvel[base_env._ball_id][3], base_env.data.cvel[base_env._ball_id][5]]
 
-                if len(data_queue) >= T:
-                    collected_data_rays.append(list(data_queue))
-                    collected_data_pos.append(list(pos_queue))
-                    collected_data_vel.append(ball_vel)
+                # Prepare input for the vision model
+                raycast_buffer.append(ray_output)
+                ray_input = torch.stack(list(raycast_buffer)).unsqueeze(0)  # (1, T, R)
+                # pos_input = torch.stack(list(position_buffer)).unsqueeze(0)  # (1, T, 2)
+                pos_input = torch.stack([torch.as_tensor(p, dtype=torch.float32) for p in position_buffer]).unsqueeze(0)
 
+                vision_model.eval()
+                with torch.no_grad():
+                    prediction = vision_model(ray_input, pos_input).numpy()[0]
+                    pos_pred = prediction[:2]  # (x, y)
+                    vel_pred = prediction[2:]  # (vx, vy)
+
+                # Update position buffer with the predicted position
+                position_buffer.append(pos_pred)
+                # position_buffer.append(torch.tensor(pos_pred, dtype=torch.float32))
+
+                # base_env.data.qpos[base_env._target_ball_id][0] = pos_pred[0]
+                # base_env.data.qpos[base_env._target_ball_id][2] = pos_pred[1]
+                # base_env.model.body_pos[base_env._target_ball_id, ['x', 'z']] = pos_pred[0], pos_pred[1]
+
+                base_env.model.body_pos[base_env._target_ball_id, 0] = pos_pred[0]  # Update x
+                base_env.model.body_pos[base_env._target_ball_id, 2] = pos_pred[1]
+                
                 # Print information every 100 steps
+                if step_count % 50 == 0:
+                    print(pos_pred, (base_env.data.xpos[base_env._ball_id][0], base_env.data.xpos[base_env._ball_id][2]))
+
                 if step_count % 100 == 0:
                     print(f"\nStep {step_count}")
                     print(f"Current thrower: {infos['agent_0']['thrower']}")
@@ -206,11 +225,11 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
                     obs, info = env.reset()
                     episode_reward = 0
                     step_count = 0
-                    # data_queue.clear()
-                    # pos_queue.clear()
+
                     for _ in range(T):
-                        data_queue.append(np.ones((nray,) * -1))  # Assuming 107 rays
-                        pos_queue.append([np.random.normal(loc=-1.27113819, scale=0.7155363), np.random.normal(loc=0.35084985, scale=0.54217707)])  # Initial position with mean and std
+                        position_buffer.append(torch.tensor([np.random.normal(loc=-1.27113819, scale=0.7155363), np.random.normal(loc=0.35084985, scale=0.54217707)]))  # start at (0, 0)
+                        raycast_buffer.append(torch.ones(107) * -1)
+
                     print("\nStarting new episode...")
 
                 # Synchronize the viewer
@@ -235,13 +254,4 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
         print("\nTest terminated by user")
     finally:
         env.close()
-        print("Environment closed") 
-        
-        collected_data_rays = np.array(collected_data_rays)
-        collected_data_pos = np.array(collected_data_pos)
-        collected_data_vel = np.array(collected_data_vel)
-        print("Collected data saved to 'CNN_LSTM_rays.npy', 'CNN_LSTM_pos.npy', and 'CNN_LSTM_vel.npy' with shapes:", 
-              collected_data_rays.shape, collected_data_pos.shape, collected_data_vel.shape)
-        np.save("updated_rays.npy", collected_data_rays)
-        np.save("updated_pos.npy", collected_data_pos)
-        np.save("updated_vel.npy", collected_data_vel)
+        print("Environment closed")
