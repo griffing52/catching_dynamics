@@ -22,8 +22,9 @@ from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
 
 from collections import deque
 
-collected_data_input = []
-collected_data_output = []
+collected_data_rays = []
+collected_data_pos = []
+collected_data_vel = []
 
 base_env = SingleCatchEnv()
 
@@ -116,6 +117,7 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
     try:
         while True:
             data_queue = deque(maxlen=5)  # Queue to hold the last 5 ray cast outputs  
+            pos_queue = deque(maxlen=5)  # Queue to hold the last 5 position data  
             while viewer.is_running() and not terminations["__all__"]:
                 step_start = time.time()
 
@@ -170,13 +172,15 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
 
                 ball_pos = [base_env.data.xpos[base_env._ball_id][0], base_env.data.xpos[base_env._ball_id][2]]
                 ball_vel = [base_env.data.cvel[base_env._ball_id][3], base_env.data.cvel[base_env._ball_id][5]]
-                y = np.array(ball_pos + ball_vel)
+                # y = np.array(ball_pos + ball_vel)
                 X = ray_output
                 data_queue.append(X)
+                pos_queue.append(ball_pos)
 
                 if len(data_queue) >= 5:
-                    collected_data_input.append(list(data_queue))
-                    collected_data_output.append(y)
+                    collected_data_rays.append(list(data_queue))
+                    collected_data_pos.append(list(pos_queue))
+                    collected_data_vel.append(ball_vel)
 
                 # Print information every 100 steps
                 if step_count % 100 == 0:
@@ -196,6 +200,7 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
                     episode_reward = 0
                     step_count = 0
                     data_queue.clear()
+                    pos_queue.clear()
                     print("\nStarting new episode...")
 
                 # Synchronize the viewer
@@ -222,8 +227,11 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
         env.close()
         print("Environment closed") 
 
-        collected_data_input = np.array(collected_data_input)
-        collected_data_output = np.array(collected_data_output)
-        print("Collected data saved to 'collected_data_input.npy' and 'collected_data_output.npy' with shapes:", collected_data_input.shape, collected_data_output.shape)
-        np.save("CNN_LSTM_input.npy", collected_data_input)
-        np.save("CNN_LSTM_output.npy", collected_data_output)
+        collected_data_rays = np.array(collected_data_rays)
+        collected_data_pos = np.array(collected_data_pos)
+        collected_data_vel = np.array(collected_data_vel)
+        print("Collected data saved to 'CNN_LSTM_rays.npy', 'CNN_LSTM_pos.npy', and 'CNN_LSTM_vel.npy' with shapes:", 
+              collected_data_rays.shape, collected_data_pos.shape, collected_data_vel.shape)
+        np.save("CNN_LSTM_rays.npy", collected_data_rays)
+        np.save("CNN_LSTM_pos.npy", collected_data_pos)
+        np.save("CNN_LSTM_vel.npy", collected_data_vel)
