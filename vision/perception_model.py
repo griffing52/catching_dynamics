@@ -6,6 +6,9 @@ from ray.rllib.algorithms.ppo import PPO
 # Note: You will need to have PyTorch installed (`pip install torch`)
 # and you should have your RLlib checkpoint path handy.
 
+# NOTE NOT USED ------------------------------------------------------------------------------------------------
+# This code was potentially for creating a perception model and integrating it with an RLlib motor control model.
+
 class PerceptionModel(nn.Module):
     """
     A neural network that takes raw sensor data (from ray casts) and

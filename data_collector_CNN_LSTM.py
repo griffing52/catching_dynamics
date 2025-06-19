@@ -232,6 +232,6 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
         collected_data_vel = np.array(collected_data_vel)
         print("Collected data saved to 'CNN_LSTM_rays.npy', 'CNN_LSTM_pos.npy', and 'CNN_LSTM_vel.npy' with shapes:", 
               collected_data_rays.shape, collected_data_pos.shape, collected_data_vel.shape)
-        np.save("CNN_LSTM_rays.npy", collected_data_rays)
-        np.save("CNN_LSTM_pos.npy", collected_data_pos)
-        np.save("CNN_LSTM_vel.npy", collected_data_vel)
+        np.save("CNN_LSTM_test_rays.npy", collected_data_rays)
+        np.save("CNN_LSTM_test_pos.npy", collected_data_pos)
+        np.save("CNN_LSTM_test_vel.npy", collected_data_vel)
