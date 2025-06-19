@@ -46,7 +46,7 @@ def test_environment():
                 #     "agent_1": env.action_space("agent_1").sample()   # Right arm actions
                 # }
                 actions = {
-                    "agent_0": np.array([1.0, -1.0, 1.0, -1.0, 1.0]),
+                    "agent_0": np.array([0.0, -0.0, 0.0, -0.0, 0.0]),
                     "agent_1": np.array([0.0, 0.0, 0.0, 0.0, 0.0])
                 }
                 

@@ -44,6 +44,8 @@ class SingleCatchEnv(MujocoEnv, utils.EzPickle):
         # Get body IDs for faster access
         self._ball_id = self.model.body('ball').id
         self._left_hand_id = self.model.body('hand0').id
+        self._pinch_site_id = self.model.body('pinch site0').id
+        self._finger_id = self.model.body('finger0').id
         
         # Get ball joint indices
         self._ball_joint_ids = [
@@ -109,7 +111,6 @@ class SingleCatchEnv(MujocoEnv, utils.EzPickle):
             HyperEdge(self.left_arm_shoulder, self.left_arm_elbow),
             HyperEdge(self.left_arm_elbow, self.left_arm_wrist),
             HyperEdge(self.left_arm_wrist, self.left_grasp),
-            
         ]
 
         # Task-specific variables
@@ -159,7 +160,7 @@ class SingleCatchEnv(MujocoEnv, utils.EzPickle):
             'ball_position': self.data.xpos[self._ball_id],
             'ball_velocity': self.data.cvel[self._ball_id][3:],  # Only use linear velocity
             'thrower': self._current_thrower,
-            'time_since_switch': self.time_elapsed
+            'time_elapsed': self.time_elapsed
         }
         
         return obs, reward, terminated, truncated, info
@@ -180,14 +181,50 @@ class SingleCatchEnv(MujocoEnv, utils.EzPickle):
         
     def _get_reward(self):
         ball_pos = self.data.xpos[self._ball_id]
+        ball_vel = self.data.cvel[self._ball_id]
         left_hand_pos = self.data.xpos[self._left_hand_id]
-        arm_center_pos = np.array([-1.5, 0, 0.4])
-        arm_length = 0.52
+        pinch_site_pos = self.data.xpos[self._pinch_site_id]
+        ball_target_pos = (left_hand_pos + pinch_site_pos)/2
 
-        ball_dist = np.linalg.norm(ball_pos-arm_center_pos)
-        target_length = np.clip(ball_dist, 0.0, arm_length)
-        
-        return -np.linalg.norm((arm_center_pos + target_length * (ball_pos-arm_center_pos)/ball_dist) - left_hand_pos)
+        arm_center_pos = np.array([-1.5, 0, 0.4])
+        arm_full_length = 0.52
+        arm_length = np.linalg.norm(ball_target_pos - arm_center_pos)
+        wall_height = 0.565686
+
+        dist_reward = 0.0
+        if np.linalg.norm(ball_pos - arm_center_pos) < arm_full_length:
+            # TODO now that we're within arm's distance most of this math is unnecessary
+            # Distance from hand to ball reward
+            center_to_ball = ball_pos-arm_center_pos
+            ball_dist = np.linalg.norm(center_to_ball)
+            target_length = np.clip(ball_dist, 0.0, arm_full_length)
+            theta_arm = np.arccos(np.dot(center_to_ball, ball_target_pos) / (ball_dist * np.linalg.norm(ball_target_pos)))
+            arm_length_reward = 1 - np.abs((target_length - arm_length) / target_length)
+            dist_reward = arm_length_reward * ((np.pi/2) - np.abs((np.pi/2) - theta_arm)) / (np.pi/2)
+
+            # Palm touch reward
+            if np.linalg.norm(ball_pos - left_hand_pos) < 0.01:
+                dist_reward += 100
+
+        # ball_dist = np.linalg.norm(ball_pos-arm_center_pos)
+        # target_length = np.clip(ball_dist, 0.0, arm_length)
+        # (arm_center_pos + target_length * (ball_pos - arm_center_pos) / ball_dist) - left_hand_pos
+        # normed_dist_to_target = -np.linalg.norm((arm_center_pos + target_length * (ball_pos-arm_center_pos)/ball_dist) - left_hand_pos)
+        # dist_reward = -normed_dist_to_target
+
+        # Wrist direction reward
+        wrist_reward = 0.0
+        # wrist_dir_vec = (pinch_site_pos - ball_target_pos) / np.linalg.norm(pinch_site_pos - ball_target_pos)
+        # wrist_theta = np.arctan2(wrist_dir_vec[2], wrist_dir_vec[0])
+        # ball_vel_theta = np.arctan2(ball_vel[5], ball_vel[3])
+        # ball_to_ball_target = (ball_pos - ball_target_pos) / np.linalg.norm(ball_pos - ball_target_pos)
+        # hand_ball_theta = np.arctan2(ball_to_ball_target[2], ball_to_ball_target[0])
+        # if ball_pos[2] > wall_height:
+        #     wrist_reward = (-np.abs(wrist_theta + ball_vel_theta) + np.pi) / np.pi
+        # else:
+        #     wrist_reward = (-np.abs(wrist_theta - hand_ball_theta) + np.pi) / np.pi
+
+        return dist_reward + wrist_reward
         
     def _is_done(self):
         ball_pos = self.data.xpos[self._ball_id]
