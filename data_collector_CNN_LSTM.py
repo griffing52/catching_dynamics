@@ -68,7 +68,7 @@ step_count = 0
 max_steps = 1000  # Maximum steps per episode
 
 # Slow down the simulation
-base_env.model.opt.timestep = 0.01  # Slower physics timestep
+base_env.model.opt.timestep = 0.001  # Slower physics timestep
 base_env.model.opt.iterations = 20  # More physics iterations per step
 
 print("Starting environment test...")
@@ -242,6 +242,6 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
         collected_data_vel = np.array(collected_data_vel)
         print("Collected data saved to 'CNN_LSTM_rays.npy', 'CNN_LSTM_pos.npy', and 'CNN_LSTM_vel.npy' with shapes:", 
               collected_data_rays.shape, collected_data_pos.shape, collected_data_vel.shape)
-        np.save("updated_rays.npy", collected_data_rays)
-        np.save("updated_pos.npy", collected_data_pos)
-        np.save("updated_vel.npy", collected_data_vel)
+        np.save("big_rays.npy", collected_data_rays)
+        np.save("big_pos.npy", collected_data_pos)
+        np.save("big_vel.npy", collected_data_vel)
