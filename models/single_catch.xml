@@ -51,7 +51,7 @@
     </default>
 
     <default class="ghost">
-      <geom material="target" contype="0" conaffinity="0"/>
+      <geom material="target" rgba="1 1 0 0.5" contype="0" conaffinity="0"/>
     </default>
   </default>
 
@@ -70,6 +70,11 @@
     
     <!-- Arm -->
     <replicate count="1" offset="3 0 0" euler="0 0 180">
+      <frame pos="-1.2 0 1.5">
+        <camera name="eye" xyaxes="0 -1 0 0.6 0 1" fovy="90" mode="fixed"></camera>
+        <geom name="eye_geom" type="sphere" size=".1" rgba="1 1 1 1"/>
+        <geom name="pupil_geom" pos="0.01 0 -0.01" type="sphere" size=".09" rgba="0 0 0 1"/>
+      </frame>
       <geom name="arm_root" type="cylinder" fromto="0 -.022 .4 0 .022 .4" size=".024"
             material="decoration" contype="0" conaffinity="0"/>
       <body name="upper_arm" pos="0 0 .4" childclass="arm">
@@ -125,18 +130,19 @@
       </body>
       
       <!-- targets -->
-      <!-- <body name="target_ball" pos=".4 .001 .4" childclass="ghost">
-        <geom  name="target_ball" type="sphere" size=".02" />
-        <site  name="target_ball" type="sphere"/>
-      </body> -->
     </replicate>
+    <body name="target_ball" pos="3 0 0.565686" childclass="ghost">
+      <geom  name="target_ball" type="sphere" size=".05" />
+      <!-- <geom  name="target_ball" type="sphere" size=".02" /> -->
+      <site  name="target_ball" type="sphere"/>
+    </body>
 
     <!-- props -->
     <body name="ball" pos="3 0 0.565686" childclass="object">
       <joint name="ball_x" type="slide" axis="1 0 0" ref=".4"/>
       <joint name="ball_z" type="slide" axis="0 0 1" ref=".4"/>
       <joint name="ball_y" type="hinge" axis="0 1 0"/>
-      <geom  name="ball" type="sphere" size=".022" />
+      <geom  name="ball" type="sphere" size=".022" group="2"/>
       <site  name="ball" type="sphere"/>
     </body>
 

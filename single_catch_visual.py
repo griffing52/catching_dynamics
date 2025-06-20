@@ -62,7 +62,7 @@ step_count = 0
 max_steps = 1000  # Maximum steps per episode
 
 # Slow down the simulation
-base_env .model.opt.timestep = 0.01  # Slower physics timestep
+base_env.model.opt.timestep = 0.01  # Slower physics timestep
 base_env.model.opt.iterations = 20  # More physics iterations per step
 
 print("Starting environment test...")
