@@ -21,7 +21,7 @@ from gymnasium_robotics import mamujoco_v1
 from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
 
 from collections import deque
-from vision.CNN_LSTM import GatedFusionModel 
+from vision.CNN_LSTM import GatedFusionModel, VisualCNN
 
 base_env = SingleCatchEnv()
 
@@ -78,8 +78,13 @@ for _ in range(T):
     position_buffer.append(torch.tensor([np.random.normal(loc=-1.27113819, scale=0.7155363), np.random.normal(loc=0.35084985, scale=0.54217707)]))  # start at (0, 0)
     raycast_buffer.append(torch.ones(107) * -1)  # placeholder for no hit
 
-vision_model = GatedFusionModel(num_rays=107)
-vision_model.load_state_dict(torch.load("vision/gated_model.pth"))
+# vision_model = GatedFusionModel(num_rays=107)
+# vision_model.load_state_dict(torch.load("vision/ray_transformer.pth"))
+gated_model = GatedFusionModel(num_rays=107)
+gated_model.load_state_dict(torch.load("vision/ray_transformer.pth"))
+vision_model = VisualCNN(num_rays=107)
+vision_model.load_state_dict(torch.load("vision/cnn.pth"))
+# vision_model.load_state_dict(torch.load("vision/gated_model.pth"))
 print("Vision model loaded successfully")
 
 print("Starting environment test...")
@@ -186,16 +191,22 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
                 raycast_buffer.append(ray_output)
                 ray_input = torch.stack(list(raycast_buffer)).unsqueeze(0)  # (1, T, R)
                 # pos_input = torch.stack(list(position_buffer)).unsqueeze(0)  # (1, T, 2)
-                pos_input = torch.stack([torch.as_tensor(p, dtype=torch.float32) for p in position_buffer]).unsqueeze(0)
+                # pos_input = torch.stack([torch.as_tensor(p, dtype=torch.float32) for p in position_buffer]).unsqueeze(0)
 
                 vision_model.eval()
+                gated_model.eval()
                 with torch.no_grad():
-                    prediction = vision_model(ray_input, pos_input).numpy()[0]
-                    pos_pred = prediction[:2]  # (x, y)
-                    vel_pred = prediction[2:]  # (vx, vy)
+                    pos_seq = vision_model(ray_input.squeeze(0))  # (1,5,2)
+                    
+                    position_buffer.append(pos_seq.numpy()[-1, :])
+                    prediction = gated_model(ray_input, pos_seq.unsqueeze(0)).numpy()[0]
+
+                    pos_pred = prediction[:2]
+                    vel_pred = prediction[2:]
+                    
 
                 # Update position buffer with the predicted position
-                position_buffer.append(pos_pred)
+                # position_buffer.append(pos_pred)
                 # position_buffer.append(torch.tensor(pos_pred, dtype=torch.float32))
 
                 # base_env.data.qpos[base_env._target_ball_id][0] = pos_pred[0]
