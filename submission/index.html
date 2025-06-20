@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Project Title – CS 275</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+    h1, h2 {
+      color: #004080;
+    }
+    img {
+      max-width: 100%;
+      height: auto;
+      margin: 10px 0;
+    }
+    .section {
+      margin-bottom: 30px;
+      margin: 40px;
+      margin-right: 50px;
+    }
+    a {
+      color: #007acc;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    header {
+      background: #004080;
+      color: white;
+      padding: 1.5em 2em;
+      text-align: center;
+    }
+
+  </style>
+</head>
+<body>
+
+  <header>
+  <h1 style="color: #eee">CS 275: Artificial Life for Computer Graphics and Vision</h1>
+  <h2 style="color: #eee">Term Project: Catching Dynamics</h2>
+  <p style="color: #bbb">By: Griffin Galimi, Soham Patil, Jerry Yao</p>
+</header>
+
+  <div class="section">
+    <h2>Abstract</h2>
+    <p>
+      This paper presents a framework for simulating dynamic catching behaviors with a 2-dimensional robotic arm in the MuJoCo physics engine. We investigate the emergence of adaptive strategies for intercepting and securing a moving object, a task that requires a tight coupling of perception and action analogous to that found in biological systems. Through reinforcement learning (RL), using Ray RLlib with a PyTorch backend, our agent autonomously develops effective catching policies from environmental interaction, rather than from explicit programming. This approach allows complex, timed behaviors to arise from simple reward signals, demonstrating how an agent's control system can adapt to its physical embodiment and dynamic environment. By constraining the problem to a 2D space, we isolate and analyze fundamental principles of timing, trajectory prediction, and manipulator control. This work contributes to understanding how sophisticated, seemingly intelligent behaviors can emerge from the interplay of learning, embodiment, and environmental physics, offering insights relevant to both robotics and the broader study of autonomous agents.
+    </p>
+  </div>
+
+  <div class="section">
+    <h2>Project Report</h2>
+    <p>
+      <a href="report.pdf" target="_blank">Download PDF Report</a>
+    </p>
+  </div>
+
+  <div class="section">
+    <h2>Representative Images</h2>
+    <figure>
+      <img src="images/labeled_arm_joints.png" alt="Labeled diagram of robotic arm">
+      <figcaption>Figure 1: View of the MuJoCo model used for arm control.</figcaption>
+    </figure>
+    <figure>
+      <img src="images/full_environment.png" alt="Full environment">
+      <figcaption>Figure 2: Full single arm environment.</figcaption>
+    </figure>
+  </div>
+
+  <div class="section">
+    <h2>Video Demonstrations</h2>
+    <p>
+      <a href="video/catching_full.mp4" target="_blank">Full Catching Demo (MP4)</a><br>
+      <a href="video/throwing_full.mp4" target="_blank">Full Throwing Demo (MP4)</a><br>
+      <a href="video/throwing_early_toss.mp4" target="_blank">Early Throwing Toss (MP4)</a><br>
+      <a href="video/throwing_pinch.mp4" target="_blank">Throwing Pinch (MP4)</a><br>
+      <a href="video/throwing_toss1.mp4" target="_blank">Throwing Toss 1 (MP4)</a><br>
+      <a href="video/throwing_toss2.mp4" target="_blank">Throwing Toss 2 (MP4)</a><br>
+    </p>
+  </div>
+
+  <div class="section">
+    <h2>Source Code & Executable</h2>
+    <p>
+      <!-- <a href="code/" target="_blank">Download Code Folder</a> or visit our -->
+      Visit our
+      <a href="https://github.com/griffing52/catching_dynamics" target="_blank">GitHub Repository</a>.
+    </p>
+    <p>
+      Visualizations of our latest training results can be seen by running single_catch_visual.py and single_throw_visual.py respectively.
+    </p>
+  </div>
+
+</body>
+</html>
