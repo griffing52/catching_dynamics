@@ -196,13 +196,21 @@ with mujoco.viewer.launch_passive(base_env.model, base_env.data) as viewer:
                 vision_model.eval()
                 gated_model.eval()
                 with torch.no_grad():
-                    pos_seq = vision_model(ray_input.squeeze(0))  # (1,5,2)
+                    cnn_pos = vision_model(ray_output.unsqueeze(0)) # (1,5,2)
                     
-                    position_buffer.append(pos_seq.numpy()[-1, :])
+                    blind = False
+                    if (ray_output == -1).all():
+                        blind = True
+                    else:
+                        position_buffer.append(cnn_pos.squeeze(0))
+
+                    pos_seq = torch.stack(list(position_buffer))
                     prediction = gated_model(ray_input, pos_seq.unsqueeze(0)).numpy()[0]
 
                     pos_pred = prediction[:2]
                     vel_pred = prediction[2:]
+                    if blind:
+                        position_buffer.append(torch.tensor(pos_pred, dtype=torch.float32))
                     
 
                 # Update position buffer with the predicted position

@@ -51,7 +51,7 @@
     </default>
 
     <default class="ghost">
-      <geom material="target" contype="0" conaffinity="0"/>
+      <geom material="target" rgba="1 1 0 0.5" contype="0" conaffinity="0"/>
     </default>
   </default>
 
